@@ -19,7 +19,7 @@ Team: Nurzhan Izimbetov (Backend & Search Core), Abilkhaiyr Sarsenbay (Frontend 
 | 9 | Verification and evaluation plan | [Section 9](#9-verification-and-evaluation-plan) |
 | 10 | Project management and risks | [Section 10](#10-project-management-and-risks) |
 | 11 | Supervisor feedback | [Section 11](#11-supervisor-feedback) |
-| A-E | Appendices: search log, ADRs, abbreviations, task list, API examples | [A](#appendix-a-literature-search-log), [B](#appendix-b-architecture-decision-records), [C](#appendix-c-abbreviations), [D](#appendix-d-youtrack-task-list-import-ready), [E](#appendix-e-api-examples-planned) |
+| A-E | Appendices: search log, ADRs, abbreviations, task list, API examples | [A](#appendix-a-literature-search-log), [B](#appendix-b-architecture-decision-records), [C](#appendix-c-abbreviations), [D](#appendix-d-youtrack-task-list), [E](#appendix-e-api-examples-planned) |
 | - | References (APA 7th edition) | [References](#references) |
 
 Sources of material: the supervisor's justification (roles, plan), the Committee's list file (edition of 15 Sep 2026), `docs/lit/references.bib`, diagrams in `diagrams/`.
@@ -43,7 +43,7 @@ Sources of material: the supervisor's justification (roles, plan), the Committee
 | Supervisor | Symbat Nurgaliyeva, PhD, assistant professor | | weekly meetings, code review, architecture and search-method consultation |
 
 ## Problem statement
-Researchers, teachers and doctoral students in Kazakhstan must regularly check whether a journal is in the list of publications recommended by the Committee (КОКСНВО МНВО РК) for publishing the main results of scientific activity. The list is published as documents that are inconvenient to search, and it changes: it is updated regularly and was reorganised into three levels by the order of 3 June 2025 (section 2). Titles occur in Kazakh, Russian and English, with transliteration variants, abbreviations and typos. A user needs one tool that finds a journal quickly, even from an imperfect query, and shows its status, list level and subject area.
+Researchers, teachers and doctoral students in Kazakhstan must regularly check whether a journal is in the list of publications recommended by the Committee (КОКСНВО МНВО РК) for publishing the main results of scientific activity. The list is published as documents that are inconvenient to search, and it changes: it is updated regularly and was reorganised into three levels by order No. 289 of the Minister of Science and Higher Education of 3 June 2025 (section 2). Titles occur in Kazakh, Russian and English, with transliteration variants, abbreviations and typos. A user needs one tool that finds a journal quickly, even from an imperfect query, and shows its status, list level and subject area.
 
 ## Target users
 | User | Need |
@@ -61,6 +61,17 @@ To design, implement, deploy and evaluate a web system that lets users search th
 ## Research question
 Does hybrid retrieval, which combines PostgreSQL full-text search, trigram fuzzy matching and multilingual vector search through Reciprocal Rank Fusion, find the intended journal more reliably than each method alone for realistic trilingual queries (exact titles, partial titles, typos, transliteration, subject descriptions), while meeting an interactive latency target?
 
+## Hypotheses
+Thresholds are fixed before any measurement and are not changed after seeing test results (sections 6.4, 9.4). Metrics and the decision rule are defined in section 9.4.
+
+| ID | Hypothesis | Success criterion |
+|---|---|---|
+| HS1 | Hybrid retrieval (H1: FTS + trigram + vector, fused by RRF) finds the intended journal more reliably than every single method | MRR@10 of H1 is at least 0.05 above the best of M1-M4 on the whole test set; the paired-bootstrap 95% confidence interval of the difference excludes 0 |
+| HS2 | Hybrid retrieval stays reliable on imperfect queries | Recall@5 of H1 is at least 0.95 overall and at least 0.90 on typo queries |
+| HS3 | Hybrid retrieval is fast enough for interactive use | p95 response time of H1 is at most 300 ms on the deployment machine, warm cache, CPU embedding |
+
+HS1 is the riskiest: the registry is small (243 rows), so the best single method may already score close to the maximum. A pilot run in November 2026 checks whether the +0.05 margin is reachable (section 9.7), and the CPU latency of the candidate embedding models is measured at the same time (section 5.3, task DIP-38).
+
 ## Objectives
 | # | Objective | Owner |
 |---|---|---|
@@ -71,8 +82,9 @@ Does hybrid retrieval, which combines PostgreSQL full-text search, trigram fuzzy
 | O5 | Build the evaluation set and measure relevance and speed against single-method baselines | Nurzhan (search side), Abilkhaiyr (query set, UI checks) |
 | O6 | Containerise and deploy the system; write documentation and tests | both |
 
-
-
+## Open scope questions
+1. Which parts of the list are in scope for search: Lists 1-3 only, or also the list of security and law-enforcement journals, conference proceedings and trusted publishers? Current working answer: Lists 1-3 and the military and security list are imported; the evaluation focuses on the IT/CS subset.
+2. Should the thousands of international journals that enter List 1 automatically through Web of Science and Scopus be searchable? Current working answer: no, only a rule note (risk R4).
 
 ## Expected outcomes
 - Deployed web service with documented API and relevant, fast search over the registry.
@@ -96,7 +108,7 @@ Does hybrid retrieval, which combines PostgreSQL full-text search, trigram fuzzy
 
 
 ## Engineering complexity
-- Data engineering: unknown and changing source format, normalisation of multilingual titles, ISSN validation, versioned imports with diff.
+- Data engineering: irregular and changing source layout, normalisation of multilingual titles, ISSN validation, versioned imports with diff.
 - Information retrieval: three retrieval methods and a fusion layer, tuned and evaluated on a purpose-built query set; multilingual (kk/ru/en) with limited tooling for Kazakh.
 - Backend: PostgreSQL with FTS, `pg_trgm` and `pgvector` indexes, embedding service, API design, latency optimisation, containerised deployment.
 - Frontend: responsive search interface with filters, tables, error and status handling, integrated with the API.
@@ -111,8 +123,8 @@ Does hybrid retrieval, which combines PostgreSQL full-text search, trigram fuzzy
 ## 2.1 Documentary evidence about the list (secondary sources, to be verified against the official order)
 | Finding | Source | Status |
 |---|---|---|
-| Requirements for recommended journals were rewritten by the order of the Minister of Science and Higher Education of 3 June 2025, in force from 21 June 2025 | [zakon.kz, 11 Jun 2025](https://www.zakon.kz/pravo/6480512-izmenilis-trebovaniya-k-nauchnym-izdaniyam-i-publikatsiyam.html) | news report; order text on adilet.zan.kz not yet read by us |
-| The list has six components: scientific journals of level 1, 2 and 3; journals of security and law-enforcement bodies; proceedings of international conferences; list of trusted Kazakhstani publishers | same | secondary |
+| Requirements for recommended journals were set out in a new edition by order No. 289 of the Minister of Science and Higher Education of 3 June 2025 (amending order No. 20 of the Minister of Education and Science of 12 January 2016), registered by the Ministry of Justice on 5 June 2025 under No. 36221; it enters into force ten calendar days after its first official publication | primary: text of the order in the Adilet legal-information system (read through the [zakon.uchet.kz copy](https://zakon.uchet.kz/rus/history/V2500036221/03.06.2025) of the database, 24 Oct 2026); original record [adilet.zan.kz/rus/docs/V2500036221](https://adilet.zan.kz/rus/docs/V2500036221); secondary: [zakon.kz, 11 Jun 2025](https://www.zakon.kz/pravo/6480512-izmenilis-trebovaniya-k-nauchnym-izdaniyam-i-publikatsiyam.html) reports the date of entry into force as 21 June 2025 | **verified** in the primary text (number, date, registration); the 21 June date comes from the news report and follows from the ten-day clause |
+| The list has six components (point 3 of the requirements): scientific journals of level 1, 2 and 3; journals of national security and law-enforcement bodies; collections of international scientific conferences; list of trusted Kazakhstani publishers | same order text | **verified** in the primary text |
 | List 1 includes all Web of Science Core Collection and Scopus journals automatically, plus listed trusted publishers; domestic List 1 journals need DOI for each article, IMRAD structure, blind review, licensed plagiarism check | same | secondary |
 | A commercial guide gives counts "as of July 2026": List 1 46 domestic journals (plus thousands of international titles), List 2 164, List 3 19, and states the list is updated quarterly | [a-articles.kz](https://a-articles.kz/perechen-koksnvo-mnvo-rk-spisok-1-2-3/) | **unverified commercial source**, counts must be checked against the official file |
 | A 2024 Committee presentation described the earlier list as 152 journals in 18 directions; 174 before 2021, 147 in 2021 | [Committee presentation](https://enic-kazakhstan.edu.kz/files/1701339600/1-prezentaciya-koksnvo-a-toybaev.pdf), via search summary | secondary |
@@ -123,7 +135,7 @@ Counts differ between sources and over time: the number of domestic journals cha
 What this means for the project:
 - The data set is **small** (hundreds of rows, not millions), so the difficulty is not scale but quality of matching: multilingual, noisy queries, changing source, and trustworthy status information.
 - The list **changes** (quarterly updates, criteria change), which justifies versioned imports and a visible "data last updated" date.
-- The official publication format (file type, columns) is **not yet verified**. This is the main data risk (section 10).
+- The format of the list is **verified for one edition**: the file of 15 Sep 2026 is an xlsx with an irregular layout (section 2.6). That the Committee publishes the list in xlsx regularly is not yet confirmed (task DIP-9). This remains the main data risk (section 10).
 
 ## 2.2 Evidence about existing tools 
 | Tool | What it offers | Source |
@@ -135,7 +147,7 @@ None of these tools answers "is this journal on the Kazakhstani Committee's list
 
 ## 2.3 Evidence from literature (verified, see section 3)
 - Cyrillic and regional material breaks tools built for English: vanilla GROBID reaches F1 0.06 on Cyrillic headers (L1), and parsers need target-language data (L2, L3). The import of the official list is therefore tested on Kazakh and Russian rows, not assumed to work.
-- No single database covers regional journals (L14, L15) and post-Soviet journals are poorly covered by Scopus and Web of Science (L18); neighbouring countries built national indexes and selected lists (L17). A purpose-built registry of the Committee list fills a gap that the international sources leave.
+- No single database covers regional journals (L14, L15) and post-Soviet countries show low overall indexing in Scopus and Web of Science and their journals are mostly not international (L18); neighbouring countries built national indexes and selected lists (L17). A purpose-built registry of the Committee list fills a gap that the international sources leave.
 
 ## 2.4 User survey and follow-up discussions
 The user needs are explored with an anonymous online survey (Google Forms) of potential users, followed by 3-5 short discussions with volunteers and the supervisor. Survey form: https://docs.google.com/forms/d/e/1FAIpQLScFAFdqwJFGHOFftV6nI4vmFLz6PFovjTx-XXTA9Z2oMPNAMA/viewform (English; kk and ru copies to follow). Until the responses are in, every user need in this report is an **assumption** (section 2.5).
@@ -200,7 +212,7 @@ Follow-ups:
 ## 2.5 Verified findings versus assumptions
 | Statement | Status | Basis | How to verify |
 |---|---|---|---|
-| The 2025 order created three list levels | Reported by news source | zakon.kz | read order text on adilet.zan.kz |
+| The 2025 order created three list levels | **Verified** in the order text (No. 289 of 3 June 2025, registered 5 June 2025 under No. 36221, point 3 of the requirements lists levels 1, 2 and 3) | Adilet database text, read 24 Oct 2026 through a copy of the database | cite the order by number; re-check when the order is amended (the list of amendments is shown on the Adilet page) |
 | About 229 domestic journals in lists 1-3 | **Checked** against the file: 232 rows in lists 1-3 (47 / 163 / 22) plus 11 in list 4; commercial counts are close but outdated | official file of 15 Sep 2026 | re-count when a new edition appears |
 | The list is updated quarterly | **Unverified** | a-articles.kz | check official file history |
 | Scopus and WoS offer title/ISSN search but not the Committee status | Verified for the tools' own search features | vendor documentation | try both with sample journals |
@@ -260,9 +272,9 @@ Levels were read by matching titles to the list sheets (journals 13 and 45 are i
 
 # 3. Literature Review
 
-Requirement: at least 12 meaningfully used sources, at least 8 scientific, mostly from the last five years, with foundational works kept. This review has 18 sources: 11 open-access papers selected by a structured database search (L1-L11, search log in Appendix A) and 7 added in October 2026 by targeted web search (L12-L18, bibliographic data checked against DOI, publisher or arXiv pages). 17 are scientific and 1 is a tool paper (L12). 11 are from 2021 or later. Full BibTeX: [lit/references.bib](lit/references.bib).
+Requirement: at least 12 meaningfully used sources, at least 8 scientific, mostly from the last five years, with foundational works kept. This review has 26 sources: 11 open-access papers selected by a structured database search (L1-L11, search log in Appendix A), 7 added in October 2026 by targeted web search on indexes and coverage (L12-L18) and 8 added on 24 October 2026 on retrieval, fusion, multilingual embeddings and Kazakh language resources (L19-L26). Bibliographic data of L12-L26 were checked against DOI, publisher, ACL Anthology or arXiv pages. 25 are scientific and 1 is a tool paper (L12). 17 are from 2021 or later. Full BibTeX: [lit/references.bib](lit/references.bib).
 
-The review asks what published work says about three things the system depends on: (1) reading metadata and lists in Cyrillic and other non-English scholarly material, (2) how scholarly indexes and journal lists are built and how far they cover regional journals, and (3) which text models suit scientific and multilingual text.
+The review asks what published work says about five things the system depends on: (1) reading metadata and lists in Cyrillic and other non-English scholarly material, (2) how scholarly indexes and journal lists are built and how far they cover regional journals, (3) which text models suit scientific and multilingual text, (4) how rankings from several retrievers are fused, and (5) what is known about retrieval and language resources for Kazakh. Themes 1 and 2 mostly concern the import step and the case for the registry; themes 3 to 5 concern the search core and the research question.
 
 ## 3.1 Source table
 | # | Source | Year | Type | Focus | Used for |
@@ -284,7 +296,15 @@ The review asks what published work says about three things the system depends o
 | L15 | Martín-Martín, Thelwall, Orduna-Malea, Delgado López-Cózar, Scientometrics | 2021 | scientific | citation coverage of six databases | why one database cannot answer a national-list question |
 | L16 | Priem, Piwowar, Orr, arXiv (OpenAlex) | 2022 | scientific (preprint) | open index of works, venues, institutions | optional enrichment of journal records |
 | L17 | Moskaleva, Pislyakov, Sterligov, Akoev, Shabanova, Scientometrics (Russian Index of Science Citation) | 2018 | scientific | national citation index and journal selection in a neighbouring country | analogue of a national list |
-| L18 | Study of post-Soviet countries in Scopus and Web of Science, European Science Editing 46, e53192 (doi 10.3897/ese.2020.e53192) | 2020 | scientific | coverage of post-Soviet journals in the two international indexes | regional coverage gap; **authors to be added from the DOI page** |
+| L18 | Alimova, Brumshteyn, European Science Editing | 2020 | scientific | coverage of papers of Russia and post-Soviet countries by Scopus and Web of Science, languages, productivity | regional coverage gap |
+| L19 | Cormack, Clarke, Büttcher, SIGIR | 2009 | scientific, foundational | Reciprocal Rank Fusion (RRF), k = 60 | fusion method of the search core (FR-08) |
+| L20 | Bruch, Gai, Ingber, arXiv (published in ACM TOIS) | 2022 | scientific (preprint) | fusion functions for hybrid lexical and semantic retrieval: RRF versus convex combination | ablation H2, tuning of weights |
+| L21 | Chen, Xiao, Zhang, Luo, Lian, Liu, Findings of ACL (BGE M3-Embedding) | 2024 | scientific | multilingual embeddings, 100+ languages, dense, sparse and multi-vector | embedding model A (section 5.3) |
+| L22 | Wang, Yang, Huang, Yang, Majumder, Wei, arXiv (multilingual E5) | 2024 | scientific (technical report) | multilingual E5 small, base and large | embedding model B (section 5.3) |
+| L23 | Reimers, Gurevych, EMNLP | 2020 | scientific, foundational | multilingual sentence embeddings by knowledge distillation | cross-language matching, MiniLM family option |
+| L24 | Muennighoff, Tazi, Magne, Reimers, EACL (MTEB) | 2023 | scientific | benchmark of embedding models, 58 datasets, 8 tasks, 112 languages | how to compare embedding models; limits of public benchmarks |
+| L25 | Yeshpanov, Efimov, Boytsov, Shalkarbayuli, Braslavski, LREC-COLING (KazQAD) | 2024 | scientific | Kazakh open-domain QA dataset with passage-level relevance judgements | the only retrieval baseline for Kazakh found |
+| L26 | Yeshpanov, Khassanov, Varol, LREC (KazNERD) | 2022 | scientific | Kazakh named entity recognition dataset | state of Kazakh language resources |
 
 ## 3.2 Structured analysis of the core publications (L1-L11)
 Metrics are as reported by the authors; we did not reproduce them.
@@ -303,7 +323,7 @@ Metrics are as reported by the authors; we did not reproduce them.
 | L10 Saier, Krause, & Färber (2023) | Existing scholarly full-text corpora suffer from limited domain and time coverage, incomplete citation networks, and lossy representation of mathematical notations. | Construction of unarXive 2022 via an automated pipeline pre-processing arXiv papers into structured full-text and linking citations to open knowledge graphs. | 1.9 million publications from arXiv across multiple scientific disciplines spanning 32 years (1991–2022). | Automated pipeline integrating LaTeXML and GROBID with persistent OpenAlex entity resolution. | In-text citation marker resolution rate, citation graph completeness, database query latency. | Successfully linked 64,547,944 in-text citation markers directly to OpenAlex, creating a complete open citation graph with structured full text and LaTeX math formulas. | Pipeline relies heavily on the presence of LaTeX source files in arXiv; pure PDF fallback parsing exhibits higher reference extraction error rates. |
 | L11 Beltagy, Lo, & Cohan (2019) | General-domain BERT models exhibit only 42% token overlap with scientific terminology, causing substantial out-of-vocabulary errors on scholarly document processing tasks. | Pre-training a domain-specific BERT architecture from scratch using a specialized scientific vocabulary on a large corpus of scientific literature. | 1.14 million scientific papers (3.17 billion tokens; 18% computer science, 82% biomedical) from Semantic Scholar. | SciBERT: BERT-base architecture trained with custom 30K WordPiece vocabulary (SciVocab) built using SentencePiece. | F1-score across 8 benchmark NLP tasks: named entity recognition (NER), relation extraction, dependency parsing, text classification. | Consistently outperforms BERT-base across all 8 scientific NLP benchmarks (+2.5 to +4.0 F1); established that domain-specific vocabulary is foundational for scientific text processing. | Pretrained exclusively on English-language publications; lacks multilingual/Cyrillic tokens, requiring fine-tuning or adaptation for national non-Latin corpora. |
 
-## 3.3 Added sources (L12-L18)
+## 3.3 Added sources (L12-L26)
 | Source | What it contributes | Limitation for this project |
 |---|---|---|
 | L12 Lopez 2009 | GROBID, the usual open baseline for header and reference extraction (CRF) | tool paper; trained on Latin-script data (see L1) |
@@ -312,22 +332,34 @@ Metrics are as reported by the authors; we did not reproduce them.
 | L15 Martín-Martín et al. 2021 | 3,073,351 citations to 2,515 highly cited documents across six sources: Google Scholar found about 88%, Microsoft Academic 60%, Dimensions 54%, COCI 28% | English-language, highly cited documents only |
 | L16 Priem et al. 2022 | OpenAlex: open index (CC0) of 209M works, authors, venues, institutions; REST API and data dump | preprint; accuracy of venue and ISSN data for Kazakhstani journals not checked |
 | L17 Moskaleva et al. 2018 | describes the Russian Index of Science Citation (launched 2005): about 25 million documents in the database, a Web of Science-hosted selection of 652 journals, citation contexts from full text of 4,391 journals | describes Russia, not Kazakhstan; figures are those of the paper and may be out of date |
-| L18 European Science Editing 2020 | post-Soviet countries have low overall coverage in Scopus and Web of Science, with large differences between countries; most journals are not international | authors and exact figures to be read from the paper |
+| L18 Alimova & Brumshteyn 2020 | compares post-Soviet countries by output, share of papers in Scopus and Web of Science, and language; reports low overall values (about 1.04 Scopus and 0.87 Web of Science papers per researcher on average) and that journals mostly publish in national languages (often Russian) or English, with few foreign board members, so most cannot be called international | abstract only was read; full-text figures not checked; covers papers and countries, not national lists |
+| L19 Cormack et al. 2009 | RRF: sum of 1 / (k + rank) over rankings, k = 60; reported to beat the best single system and Condorcet fusion in TREC experiments and on LETOR 3 | 2009 web-search and learning-to-rank data, long documents; not short multilingual titles |
+| L20 Bruch et al. 2022 | compares fusion functions for lexical plus semantic retrieval; reports that a convex combination of normalised scores is at least as effective as RRF and needs only a small tuning set, while RRF is sensitive to its parameters (as reported by the authors; we have not reproduced it) | English benchmarks; we read the preprint, not the journal version |
+| L21 Chen et al. 2024 | M3-Embedding: one model for 100+ languages, three retrieval modes (dense, sparse, multi-vector), inputs up to 8,192 tokens | large model, CPU latency unknown for our deployment; Kazakh quality not reported for registry-style titles |
+| L22 Wang et al. 2024 | multilingual E5: small, base and large models trained by contrastive pre-training on about 1 billion multilingual pairs; the small and base sizes trade quality for efficiency | same: nothing on very short proper-noun titles |
+| L23 Reimers & Gurevych 2020 | trains a multilingual student to reproduce an English sentence-embedding model, so translations land close together in vector space | needs parallel data per language; quality for Kazakh not shown here |
+| L24 Muennighoff et al. 2023 | MTEB: 58 datasets, 8 task types, 112 languages; shows no embedding model wins on all tasks | public benchmark; cannot replace testing on our own queries |
+| L25 Yeshpanov et al. 2024 | KazQAD: just under 6,000 questions and nearly 12,000 passage-level relevance judgements over more than 800,000 Kazakh Wikipedia passages; baseline retrievers reach NDCG@10 0.389 and MRR 0.382 | encyclopaedic passages, not journal titles |
+| L26 Yeshpanov et al. 2022 | KazNERD: 112,702 sentences and 136,333 annotations in 25 entity classes, best model 97.22% exact-match F1 | news text; shows resources exist for tagging, not for retrieval of titles |
 
 ## 3.4 Critical synthesis
 **What is known.**
 1. Extraction tools trained on English fail on Cyrillic unless retrained: vanilla GROBID reaches F1 0.06 on Cyrillic headers and 0.83 to 0.90 after retraining (L1). Large annotated corpora in the target language lift reference parsing to above 99% token F1 (L2, L3). Layout features reduce field confusion on multi-column pages (L3, L6, agreeing).
 2. LLM and vision-based extractors work without training but cost latency and compute, and need validation against hallucinated fields (L7, L8).
 3. Production indexes are modular pipelines with entity linking to open metadata (L4, L5, L10), and open metadata sources such as OpenAlex can supply venue records (L10, L16).
-4. No single database covers all journals: coverage differs strongly between Scopus, Web of Science, Dimensions, Google Scholar and open sources (L14, L15), and post-Soviet journals are poorly covered by the two international indexes (L18). Neighbouring countries solved this with national indexes and selected journal lists (L17).
+4. No single database covers all journals: coverage differs strongly between Scopus, Web of Science, Dimensions, Google Scholar and open sources (L14, L15), and post-Soviet countries show low overall indexing in the two international indexes, with journals mostly publishing in national languages (L18). Neighbouring countries solved this with national indexes and selected journal lists (L17).
 5. Domain-specific text models beat general ones on scientific language (L11, L9), but the published ones are English-centred.
+6. RRF is a simple, parameter-light way to fuse rankings (L19). Later work reports that a tuned convex combination can match or beat it and that RRF depends on its parameters (L20). Both are therefore kept in the design: RRF as the proposed fusion, convex combination as an ablation (H1 versus H2).
+7. Multilingual embedding models exist at several sizes and cover 100+ languages (L21, L22, L23), and benchmarks show that the best model depends on the task (L24). The choice for this project is therefore made by measurement (section 5.3), not by reading leaderboards.
+8. Kazakh is a low-resource language: retrieval resources are few (the Kazakh QA dataset L25 gives retrieval baselines of about 0.38 to 0.39 on encyclopaedic passages) and annotated resources are mostly for tagging (L26).
 
 **Where the evidence is weak for this project.**
-- The best numbers come from Korean or English corpora (L2, L3, L6) and are upper bounds for Kazakhstani material; Kazakh is absent from every study.
-- Most work targets article-level extraction. The input here is a spreadsheet of about 240 journals (section 2.6), so the extraction literature mainly informs risk R1 and the design of the import step, not the core search.
+- The best extraction numbers come from Korean or English corpora (L2, L3, L6) and are upper bounds for Kazakhstani material; Kazakh is absent from every extraction study. For retrieval, Kazakh appears only in L25 and L26, and none of the fusion and embedding papers (L19-L24) reports results on short journal titles in Kazakh.
+- Most of the early sources (L1-L13) target article-level extraction. The input here is a spreadsheet of about 240 journals (section 2.6), so the extraction literature mainly informs risk R1 and the design of the import step; the core search rests on L19-L26.
+- The fusion and embedding papers use long documents or passages. Journal titles are short proper nouns, so published gains for RRF or for any embedding model are not expected to transfer unchanged; this is the reason for the pilot in section 9.7.
 - The coverage studies (L14, L15) compare databases of articles, not lists of journals approved by a regulator.
 
-**Gap.** No work was found on a searchable registry of a national list of recommended journals, nor on status lookup against such a list for Kazakhstan. The nearest analogue is the Russian national index (L17), described by its operators. Absence in our queries is not proof of absence (Appendix A).
+**Gap.** No work was found on a searchable registry of a national list of recommended journals, nor on status lookup against such a list for Kazakhstan, nor on hybrid retrieval over short multilingual journal titles that includes Kazakh. The nearest analogue is the Russian national index (L17), described by its operators. Absence in our queries is not proof of absence (Appendix A).
 
 ## 3.5 What the project takes from the literature
 | Decision | Taken from |
@@ -338,16 +370,19 @@ Metrics are as reported by the authors; we did not reproduce them.
 | Store the registry as a versioned, linked metadata index with an enrichment step for ISSN and venue data (OpenAlex as optional source) | L4, L5, L10, L16 |
 | Justify a purpose-built registry because no single database answers the Committee-list question | L14, L15, L18, L17 |
 | Choose text models for scientific and multilingual text by testing on our own data, since published domain models are English-centred | L9, L11 |
+| Fuse the three rankings with RRF, k = 60 as default and tuned on the development split; keep a convex combination as ablation | L19, L20 |
+| Shortlist BGE M3 and multilingual E5 (small or base) as embedding candidates; keep the MiniLM family as a lighter option; decide by measurement because benchmark winners differ by task | L21, L22, L23, L24 |
+| Add a trigram retriever and a transliteration table as safety net for Kazakh, and report every metric per language | L25, L26 |
 | Report results per language and record the Kazakh gap | L1, L2, L3 |
 
 ## 3.6 Count
-Scientific sources: 17 (L1-L11, L13-L18). Tool paper: 1 (L12). Total 18. From 2021 or later: 11 (L1, L2, L3, L5, L6, L7, L8, L10, L14, L15, L16).
+Scientific sources: 25 (L1-L11, L13-L26). Tool paper: 1 (L12). Total 26. From 2021 or later: 17 (L1, L2, L3, L5, L6, L7, L8, L10, L14, L15, L16, L20, L21, L22, L24, L25, L26). Older foundational works kept on purpose: L4, L9, L11, L13, L19, L23.
 
 ---
 
 # 4. Existing System Comparison
 
-Five systems on nine criteria. Cells say **Yes / Partial / No / Not verified** with the evidence. "Not verified" means we found no source; it is not a negative claim. Evidence was gathered on 21 Oct 2026 from vendor documentation and search summaries; no tool was tried hands-on yet (action in A.5).
+Five systems on nine criteria. Cells say **Yes / Partial / No / Not verified** with the evidence. "Not verified" means we found no source; it is not a negative claim. Evidence was gathered on 21 Oct 2026 from vendor documentation and search summaries; no tool was tried hands-on yet (task DIP-8, section 4.5).
 
 ### 4.1 Systems
 | ID | System | Type | Evidence |
@@ -391,8 +426,8 @@ Five systems on nine criteria. Cells say **Yes / Partial / No / Not verified** w
 4. A system that imports S1, normalises it, and adds typo-tolerant, multilingual and semantic search with a status answer fills a concrete gap.
 
 ### 4.5 Limits and next steps
-- Most cells rely on documentation, not on our own trials. Before the pre-defense, run ten sample journals through S2, S3, S5 and the official file and record what each returns (task DIP-8).
-- The official publication format for S1 is not yet verified. Search results show a legal-information-system document and university PDF copies (task DIP-9).
+- Most cells rely on documentation, not on our own trials. By milestone M1, run ten sample journals through S2, S3, S5 and the official file and record what each returns (task DIP-8).
+- The format in which the Committee publishes S1 is verified for one edition only (xlsx of 15 Sep 2026, section 2.6). Legal-information systems and university sites also carry the list as documents and PDF copies; whether xlsx is published regularly is checked in task DIP-9.
 - Scopus and Web of Science were included only as search-feature comparisons; their data are licensed and are not a source for the system.
 
 ---
@@ -411,7 +446,7 @@ Core decisions are scored against the requirement ids in section 6 (FR-xx functi
 | Evidence for this project | 0 to be measured (baseline M1) | 0 to be measured (M4) | 0 to be measured (H1, H2, section 9) |
 | Complexity and latency (NFR-02) | ++ | + embedding at query time | 0 three queries plus fusion |
 | Explainability for users | ++ | - | + show which method matched |
-**Decision:** C, with A, trigram-only and B kept as baselines; fusion by RRF (k = 60, configurable) plus a convex-combination variant as ablation. The supervisor's document also specifies hybrid FTS plus vector search with RRF (ADR-001).
+**Decision:** C, with A, trigram-only and B kept as baselines; fusion by RRF (k = 60, configurable; Cormack et al., L19) plus a convex-combination variant as ablation (Bruch et al., L20). The supervisor's document also specifies hybrid FTS plus vector search with RRF (ADR-001).
 
 ### 5.2 Decision 2: search and storage engine
 | Criterion | A. PostgreSQL (FTS + `pg_trgm` + `pgvector`) | B. Elasticsearch / OpenSearch | C. SQLite FTS5 + external vector index (FAISS) |
@@ -433,7 +468,8 @@ Core decisions are scored against the requirement ids in section 6 (FR-xx functi
 | Extra functions | ++ dense, sparse, multi-vector, long input | 0 dense only | 0 dense only |
 | Licence, hosting | to check | to check | to check |
 | Evidence on this task | none | none | none |
-**Decision:** do not choose by reading. Evaluate A and B (small or base) on the query set of section 9 and keep the cheaper model if the gap is small. Kazakh quality is a stated risk (R3). (ADR-003)
+Sources: BGE M3 (L21), multilingual E5 (L22), multilingual MiniLM by distillation (L23); benchmark winners differ by task (L24).
+**Decision:** do not choose by reading. Evaluate A and B (small or base) on the query set of section 9 and keep the cheaper model if the gap is small. Kazakh quality is a stated risk (R3). **Early check (task DIP-38, by M1):** encode the 243 titles and 100 sample queries on the CPU of the planned deployment machine with BGE M3 and multilingual E5 small and base, and record query-encoding latency (p50, p95), start-up time and memory. A model whose single-query encoding alone approaches the 300 ms budget of HS3 is dropped before the relevance comparison. (ADR-003)
 
 ### 5.4 Decision 4: backend framework
 | Criterion | A. FastAPI | B. Django + DRF | C. Node.js + Express |
@@ -450,9 +486,9 @@ Core decisions are scored against the requirement ids in section 6 (FR-xx functi
 |---|---|---|
 | Matches the role split (Frontend & Data Integration) | ++ | - |
 | Shared validation with the database schema (FR-02) | 0 duplicated unless a JSON Schema is shared | ++ |
-| Parsing of PDF or HTML list tables | + libraries exist in both ecosystems; source format unknown | + |
+| Parsing of xlsx list tables (irregular layout, section 2.6) and, if needed, PDF or HTML copies | + libraries exist in both ecosystems; the xlsx of 15 Sep 2026 is in hand | + |
 | Testing and reuse in evaluation | 0 | ++ |
-**Decision:** A with a versioned JSON contract (`registry-import.schema.json`) that the API validates with Pydantic, so validation lives in one place. Fall back to B if the source needs Python-only tooling (ADR-005).
+**Decision:** A with a versioned JSON contract (`registry-import.schema.json`) that the API validates with Pydantic, so validation lives in one place. Fall back to B if a later edition needs Python-only tooling (ADR-005).
 
 ### 5.6 Decision 6: frontend
 Vue 3 is chosen by the frontend owner. Alternatives considered: server-rendered pages (simpler, fewer interactions, weaker filters and table UX) and React. Decision: Vue 3 with a small component library or plain CSS; table with sorting, filter chips, pagination.
@@ -564,7 +600,7 @@ flowchart LR
     sys -->|encode titles and queries| emb
 ```
 
-External elements: the Committee list source (an official document or file; its exact format is still to be verified), an embedding model that runs locally, and optional public APIs (OpenAlex, DOAJ) for enrichment. Users do not log in; only the data administrator uses a protected import endpoint.
+External elements: the Committee list source (an official file; the edition of 15 Sep 2026 is an xlsx, regular publication in this format is still to be confirmed), an embedding model that runs locally, and optional public APIs (OpenAlex, DOAJ) for enrichment. Users do not log in; only the data administrator uses a protected import endpoint.
 
 ### 7.2 Use cases
 ```mermaid
@@ -783,7 +819,7 @@ Examples with JSON are in Appendix E.
 4. **Evaluation:** harness replays the query set with each `method` value, records ranks and latency, writes the report.
 
 ### 7.9 Constraints and risks in the design
-- The source format is unknown, so the integration module is the least certain component.
+- The source layout is irregular (merged headers, mixed-language cells, free-text dates, section 2.6) and may change between editions, so the integration module is the least certain component.
 - With hundreds of rows, exact search can be near-perfect for title queries; the value of the vector component must be shown on topic and cross-language queries.
 - Embedding models consume memory and start-up time; the container must load the model once.
 - Kazakh full-text configuration is limited; the trigram retriever is the safety net.
@@ -792,7 +828,7 @@ Examples with JSON are in Appendix E.
 
 # 8. UX and Prototype
 
-Nothing of the core interface exists yet. This section shows **mid-fidelity HTML mockups (sources in `diagrams/mockups/`, PNG exports in `diagrams/exports/`) and API examples** for the key scenarios. Journal names, ISSNs and levels in the mockups are **placeholders**, not real registry entries (the registry has not been imported yet). Real registry rows replace them when import (DIP-11, DIP-13) is done. The extension prototype (a working CLI) is described in Part B.
+Nothing of the core interface exists yet. This section shows **mid-fidelity HTML mockups (sources in `diagrams/mockups/`, PNG exports in `diagrams/exports/`) and API examples** for the key scenarios. Journal names, ISSNs and levels in the mockups are **placeholders**, not real registry entries (the registry has not been imported yet). Real registry rows replace them when import (DIP-11, DIP-13) is done.
 
 
 ### 8.1 Scenarios
@@ -843,7 +879,7 @@ Which columns users want in the table; whether the status page should also state
 
 # 9. Verification and Evaluation Plan
 
-Goal: show that the core system meets its requirements (section 6) and answers the research question: does hybrid retrieval find the intended journal more reliably than each method alone on realistic trilingual queries, within the latency target. Requirement ids refer to section 6. Part A is the core plan; Part B keeps the extension plan.
+Goal: show that the core system meets its requirements (section 6) and answers the research question: does hybrid retrieval find the intended journal more reliably than each method alone on realistic trilingual queries, within the latency target. Requirement ids refer to section 6.
 
 
 ### 9.1 Test levels
@@ -924,13 +960,17 @@ Decision rule: a hypothesis is "supported" when the criterion holds on the test 
 ### 9.7 Schedule (aligned with the supervisor's plan)
 | When | Activity |
 |---|---|
-| Oct-Nov 2026 | obtain and inspect the source; draft query-set method; run the user survey and collect real queries |
+| Oct-Nov 2026 | obtain and inspect the source; draft query-set method; run the user survey and collect real queries; **early checks by M1 (30 Nov): HS1 pilot and CPU latency of the embedding models (below)** |
 | Dec 2026 - Jan 2027 | unit tests for normaliser, validation, fusion; first baselines M1-M3 on a prototype set |
 | Feb-Mar 2027 | integration and API tests; full query set; embedding model comparison; tuning on development queries |
 | Apr-May 2027 | final test-part run, latency tests, usability sessions, deployment check, thesis write-up |
 
+**Early checks before the full evaluation (by M1, 30 Nov 2026).**
+1. *HS1 feasibility pilot (task DIP-37).* With a small prototype (FTS, trigram and one embedding model over the 243 imported rows) and about 100 queries of all types written before the run, measure MRR@10 of M1, M2, M3 and H1 on the development part only. Purpose: see whether the best single method already leaves less than 0.05 of headroom (ceiling effect on a small registry). If so, the team proposes to the supervisor, before any test-part run, a revised wording of HS1 (for example, the margin measured on typo, cross-language and topic queries only, or a non-inferiority claim with a latency or robustness advantage). The test part is not touched and no threshold is changed afterwards, as required by section 6.4.
+2. *Embedding latency on CPU (task DIP-38).* Measured as described in section 5.3; the numbers go into the risk R8 and into the choice of the models that enter the full comparison.
+
 ### 9.8 Threats to validity
-- Registry is small; high scores on title queries are expected from all methods, so the value of hybrid search is judged mostly on typo, cross-language and topic queries.
+- Registry is small; high scores on title queries are expected from all methods, so the value of hybrid search is judged mostly on typo, cross-language and topic queries. Whether the HS1 margin is reachable at all is checked early (pilot above).
 - Generated queries are not real user behaviour (mitigated by survey queries and human-written queries).
 - Embedding quality for Kazakh may be low (expected, to be measured); results are reported per language.
 - The source may change between evaluation and defence; the registry version is frozen for evaluation.
@@ -943,7 +983,7 @@ Decision rule: a hypothesis is "supported" when the criterion holds on the test 
 ## 10.1 Repository and tracker
 | Item | Value |
 |---|---|
-| Git repository | https://github.com/nurzhqn0/indexing-system (remote configured; no commits pushed yet, see 10.8) |
+| Git repository | https://github.com/nurzhqn0/indexing-system (branch `main`, tag `pre-defense-1`; contribution status in 10.8) |
 | YouTrack project | https://indexing-system.youtrack.cloud/dashboard?id=177-0, key `DIP`, tasks in Appendix D |
 | Documentation | this report, `docs/REPORT.md`; README in the repository root |
 | Access | supervisor (Symbat Nurgaliyeva), Abilkhaiyr Sarsenbay and the committee to be added as collaborators before the pre-defense |
@@ -969,7 +1009,7 @@ Phases follow the supervisor's plan; dates inside phases are targets.
 | ID | Milestone | Target | Exit criterion |
 |---|---|---|---|
 | M0 | Pre-defense 1: analysis and design package | 24 Oct 2026 | all 11 sections in this report, repository with README |
-| M1 | Analysis finished, data and design ready | 30 Nov 2026 | requirements agreed with supervisor, schema and import contract defined, official source obtained and inspected, high-fidelity mockups, backend and client skeletons in containers |
+| M1 | Analysis finished, data and design ready | 30 Nov 2026 | requirements agreed with supervisor, schema and import contract defined, official source obtained and inspected, high-fidelity mockups, backend and client skeletons in containers, HS1 pilot (DIP-37) and CPU latency of the embedding models (DIP-38) reported |
 | M2 | Search core and client components | 31 Jan 2027 | import, FTS, trigram, vector, fusion working through the API on real registry data; search page, table and filters against the API |
 | M3 | Integration | 31 Mar 2027 | client and server integrated, status check, error handling, integration and end-to-end tests, evaluation harness and full query set |
 | M4 | Deployment, evaluation, thesis | 20 May 2027 | deployed system, final evaluation, usability test, written thesis with individual sections, defence materials |
@@ -981,14 +1021,14 @@ Task table in Appendix D: id, title, owner, expected outcome, acceptance criteri
 Scale: L low, M medium, H high.
 | ID | Risk | Evidence | Likelihood | Impact | Mitigation | Owner |
 |---|---|---|---|---|---|---|
-| R1 | Official list is not machine-readable, is hard to obtain, or changes format | an xlsx edition of 15 Sep 2026 is in hand, but its layout is irregular (section 2.6) | H | M | obtain the document from Adilet or prg.kz and the Committee, build a table parser with manual CSV fallback, versioned import, ask supervisor for official file | Abilkhaiyr |
-| R2 | Registry is small, so every method scores high and differences are not significant | 243 rows in the current file, 15 in the IT/CS subset | H | M | evaluate by query type (typo, cross-language, topic), include real user queries from the survey, report confidence intervals; optionally add international lists if legally usable | Nurzhan |
+| R1 | Official list is not machine-readable, is hard to obtain, or changes format | an xlsx edition of 15 Sep 2026 is in hand, but its layout is irregular (section 2.6) | H | M | obtain each new edition from the Committee, Adilet or prg.kz, build a table parser with manual CSV fallback, versioned import, ask supervisor for official file | Abilkhaiyr |
+| R2 | Registry is small, so every method scores high and differences are not significant; the HS1 margin (+0.05 MRR@10) may be unreachable | 243 rows in the current file, 15 in the IT/CS subset | H | M | HS1 pilot on the development part by M1 (section 9.7, DIP-37); evaluate by query type (typo, cross-language, topic), include real user queries from the survey, report confidence intervals; optionally add international lists if legally usable | Nurzhan |
 | R3 | Weak Kazakh support in FTS and embeddings | no Kazakh stemmer in standard PostgreSQL configurations (to verify); embedding quality for Kazakh unmeasured | M | M | trigram retriever, transliteration table, compare embedding models, report per language | Nurzhan |
-| R4 | Unclear whether international auto-included journals belong in scope | List 1 includes WoS and Scopus journals automatically | M | M | ask supervisor (section 1 open questions); implement a rule note and an extension point | both |
+| R4 | Unclear whether international auto-included journals belong in scope | List 1 includes WoS and Scopus journals automatically | M | M | ask supervisor (open scope questions, section 1); implement a rule note and an extension point | both |
 | R5 | Data licensing or reuse limits of third-party lists | Scopus and WoS lists are vendor data | L | M | use only the official Committee list as core data; public APIs only for enrichment | both |
 | R6 | Integration friction between Vue frontend and FastAPI | two owners, two stacks | M | M | contract-first (OpenAPI and JSON schema), mock API for the client, integration check at each weekly meeting | both |
 | R7 | Schedule slip in one role blocks the other | client depends on API; API tests depend on data | M | M | mock API and sample data from the first weeks; weekly meetings; supervisor checks individual stages at each meeting | both, supervisor |
-| R8 | Embedding model too heavy for the deployment machine | BGE M3 larger than small E5 | M | M | measure memory and latency, choose a small model if relevance is similar | Nurzhan |
+| R8 | Embedding model too heavy for the deployment machine, query encoding alone eats the 300 ms budget (HS3) | BGE M3 larger than small E5; not measured yet | M | H | measure CPU latency, start-up time and memory of BGE M3 and E5 small and base by M1 (DIP-38, section 5.3); choose a small model if relevance is similar; cache query embeddings | Nurzhan |
 | R9 | Evaluation biased by synthetic queries | queries derived from titles favour lexical methods | M | M | real and human-written queries, separate reporting, two-annotator judgments | both |
 | R10 | Unknown hosting for final deployment | not discussed | M | M | Docker Compose, ask university IT for a server early, fallback to a cloud VM | Nurzhan |
 | R11 | Official list or criteria change during the project | quarterly updates reported | M | L | versioned import; freeze registry version for evaluation | Abilkhaiyr |
@@ -1007,7 +1047,13 @@ Source file (R1) gates the import and every dataset-based task. API contract gat
 - Repository layout (planned): `backend/`, `frontend/`, `integration/`, `evaluation/`, `docs/`, `diagrams/`, `deploy/`.
 
 ## 10.8 Evidence status for the repository requirement
-As of 23 Oct 2026: repository created and remote set; **no commits pushed yet**; YouTrack project created with the tasks of Appendix D; contributions of Abilkhaiyr are not yet in the history. These must be fixed before submission.
+As of 24 Oct 2026 (`git shortlog -sn` on `origin/main`):
+| Author | Commits | Content |
+|---|---|---|
+| Nurzhan Izimbetov | 8 | repository scaffold (DIP-2), diagrams and mockups, bibliography and list source file, this report (DIP-1), README |
+| Abilkhaiyr Sarsenbay | 3 | OJS OAI-PMH enrichment module for the IT/CS subset, `integration/enrichment/` (DIP-36) |
+
+Tag `pre-defense-1` marks the package submitted on 24 Oct 2026; this revised report is committed after the tag and is not part of it. Open points: (1) the first commits of Nurzhan carry a placeholder e-mail address, so GitHub does not attribute them to his account; the address is fixed for all new commits and `git shortlog` still shows the earlier ones under his name; (2) Abilkhaiyr's later work on the enrichment module and the data-integration tasks (DIP-9, DIP-11) must be committed from his account as it is done.
 
 ---
 
@@ -1015,11 +1061,10 @@ As of 23 Oct 2026: repository created and remote set; **no commits pushed yet**;
 
 **Supervisor:** Symbat Nurgaliyeva, PhD, assistant professor.
 
-
 ## 11.1 Deliverables to review
 | Item | Section | Decision requested |
 |---|---|---|
-| Proposal, scope, open scope questions | 1 | answer the open questions (list sections in scope, international journals) |
+| Proposal, hypotheses, open scope questions | 1 | answer the open scope questions (list sections in scope, international journals); confirm HS1-HS3 |
 | Relevance evidence and survey plan | 2 | approve survey questions; confirm supervisor as client proxy |
 | Literature review | 3 | check sources and gaps |
 | Existing systems and technology choices | 4, 5 | confirm criteria and decisions |
@@ -1029,14 +1074,25 @@ As of 23 Oct 2026: repository created and remote set; **no commits pushed yet**;
 | Management, roles, risks, tasks | 10 | confirm plan |
 
 
+## 11.2 Supervisor review of pre-defense 1 (24 October 2026)
+Reviewer: Symbat Nurgaliyeva, PhD, assistant professor. Form: written review of the pre-defense package, reproduced here in English.
 
+**General assessment.** The pre-defense materials are complete: all 11 sections and Appendices A-E are present. The topic is relevant: today the status of a journal on the Committee's list can only be checked in the official file, and there is no convenient search tool. The students have formulated a testable research question on whether hybrid retrieval (full-text search, trigram matching and vector search, fused by RRF) works better on trilingual queries.
 
-## 11.3 Feedback log (fill after each real review)
+**Strengths of the work**
+- analysis of the real list file (243 entries, an IT/CS subset of 15 journals);
+- a clear separation of verified facts from assumptions;
+- a well-designed evaluation method: baselines, ablations, development and test split, bootstrap;
+- requirements traceability, a risk register and a task plan.
+
+**Roles.** The roles are well balanced and match the project justification.
+
+**Conclusion.** The work is recommended for admission to the next stage.
+
+## 11.3 Feedback log
 | Date | Channel | Comment (verbatim or close summary) | Section | Decision (accept / modify / reject, why) | Change made | Commit |
 |---|---|---|---|---|---|---|
-|  |  |  |  |  |  |
-| | | | | | | |
-
+| 24 Oct 2026 | written review of the pre-defense package | package complete, topic relevant, research question testable; strengths: real list file analysis, verified vs assumed, evaluation design, traceability; roles balanced; recommended for admission to the next stage (full text in 11.2) | all | accept | report revised for milestone M1 (24 Oct 2026 version) | see `git log` after the revision commit |
 
 ## 11.4 How feedback is handled
 Each comment becomes a YouTrack task or a note on an existing task, gets a decision with reason, and is linked to the commit that implements it. Rejected comments keep their reason in the log.
@@ -1074,14 +1130,17 @@ Web searches for specific targets; bibliographic data checked against publisher,
 | S9 | coverage of Scopus, Web of Science and open databases | Visser et al. 2021 (L14); Martín-Martín et al. 2021 (L15) |
 | S10 | open metadata source for journals | Priem et al. 2022 (OpenAlex, L16) |
 | S11 | national citation index and journal selection in a neighbouring country | Moskaleva et al. 2018 (L17) |
-| S12 | coverage of post-Soviet and Central Asian journals in Scopus and Web of Science | European Science Editing 2020, doi 10.3897/ese.2020.e53192 (L18; authors to be added) |
+| S12 | coverage of post-Soviet and Central Asian journals in Scopus and Web of Science | Alimova & Brumshteyn 2020, doi 10.3897/ese.2020.e53192 (L18; authors and title checked on the journal page) |
+| S13 | rank fusion for hybrid retrieval | Cormack et al. 2009 (L19, DOI checked); Bruch et al. 2022 (L20, arXiv page checked) |
+| S14 | multilingual embedding models and benchmarks | Chen et al. 2024 (L21, ACL Anthology); Wang et al. 2024 (L22, arXiv); Reimers & Gurevych 2020 (L23, ACL Anthology); Muennighoff et al. 2023 (L24, ACL Anthology) |
+| S15 | Kazakh retrieval and language resources | Yeshpanov et al. 2024 (L25, ACL Anthology); Yeshpanov et al. 2022 (L26, ACL Anthology) |
 | C1 | official list of recommended journals and its structure | zakon.kz (order of 3 June 2025), a-articles.kz (list levels and counts), prg.kz and Adilet (list document), Committee presentation (earlier counts) |
 | C9 | PostgreSQL vector and trigram support | pgvector docs, PostgreSQL pg_trgm docs |
 | C10 | existing journal lookup tools | Scopus Sources, Web of Science Master Journal List, DOAJ API guides, OpenAlex sources docs |
 
 Queries for evaluations of the Committee list and for open-access analyses of Kazakhstani journals returned university news pages and a 2016 policy analysis, not research articles, so none were added. A blog analysis of DOAJ metadata quality (2021) was read but not included because it is not peer-reviewed.
 
-Deviations from the criteria: L8 (Nougat) and L16 (OpenAlex) are arXiv preprints, L12 is a tool paper, and L4, L9, L11, L13 are older foundational works. They are flagged in section 3.
+Deviations from the criteria: L8 (Nougat), L16 (OpenAlex) and L20 (fusion functions) are arXiv preprints, L22 is a technical report, L12 is a tool paper, and L4, L9, L11, L13, L19, L23 are older foundational works. L19-L26 were found by targeted search in October 2026 (S13-S15), not by the structured database search, and Kazakh retrieval is covered by two sources only; the search for Kazakh stemming and morphology resources is planned for the thesis (DIP-10). They are flagged in section 3.
 
 ---
 
@@ -1103,7 +1162,7 @@ Deviations from the criteria: L8 (Nougat) and L16 (OpenAlex) are arXiv preprints
 
 ### ADR-003 Embedding model
 - **Context:** Kazakh, Russian and English text; CPU deployment likely.
-- **Decision:** evaluate BGE M3 and multilingual E5 (small or base) on the evaluation set, choose the cheaper one if relevance is similar.
+- **Decision:** measure CPU latency and memory of BGE M3 and multilingual E5 (small and base) first (task DIP-38, by M1), then evaluate the remaining candidates on the evaluation set and choose the cheaper one if relevance is similar.
 - **Consequences:** model choice is delayed until the first evaluation (Jan 2027); embeddings stored with the model name for reproducibility.
 - **Status:** open.
 
@@ -1114,7 +1173,7 @@ Deviations from the criteria: L8 (Nougat) and L16 (OpenAlex) are arXiv preprints
 - **Status:** accepted.
 
 ### ADR-005 Data integration module
-- **Context:** source format unknown; frontend and data engineer owns the integration.
+- **Context:** the source is an xlsx with an irregular layout (edition of 15 Sep 2026) and later editions may differ; the frontend and data engineer owns the integration.
 - **Decision:** Node scripts normalise the source to a versioned JSON contract (`registry-import.schema.json`); the API validates it and stores it.
 - **Consequences:** validation rules are defined once (contract); if the source needs Python-only tooling, the parser moves to Python behind the same contract.
 - **Status:** proposed.
@@ -1125,7 +1184,7 @@ Deviations from the criteria: L8 (Nougat) and L16 (OpenAlex) are arXiv preprints
 | Term | Meaning |
 |---|---|
 | КОКСНВО МНВО РК | Committee for Quality Assurance in Science and Higher Education, Ministry of Science and Higher Education of Kazakhstan |
-| List 1, 2, 3 | levels of the Committee's list of recommended scientific journals (order of 3 June 2025) |
+| List 1, 2, 3 | levels of the Committee's list of recommended scientific journals (order No. 289 of 3 June 2025) |
 | FTS | full-text search |
 | BM25 | classic lexical ranking function used in full-text search |
 | RRF | Reciprocal Rank Fusion, score = sum of 1 / (k + rank) |
@@ -1134,7 +1193,7 @@ Deviations from the criteria: L8 (Nougat) and L16 (OpenAlex) are arXiv preprints
 | MRR, nDCG, Recall@k | retrieval metrics (section 9) |
 | ISSN / eISSN | serial number of a journal, print and electronic |
 | FR / NFR | functional / non-functional requirement (section 6) |
-| HS1-HS3 | hypotheses of the core track (section 1) |
+| HS1-HS3 | hypotheses (section 1, "Hypotheses") |
 | B0, M1-M4, H1-H4 | systems compared in section 9 |
 
 ---
@@ -1178,9 +1237,11 @@ Project key `DIP`. Owners follow the supervisor's role split. No task is marked 
 | DIP-31 | CSV export and interface language switch (FR-20, FR-21) | Abilkhaiyr | features | export opens with correct Cyrillic; labels switch | C | DIP-29 |
 | DIP-32 | Deployment with Docker Compose (NFR-03) | Nurzhan | deployment guide | second machine runs the system | M | DIP-29 |
 | DIP-33 | Usability test and accessibility check (NFR-06) | Abilkhaiyr | test report | 3 users x 3 tasks, keyboard pass, 375 px check | S | DIP-29 |
-| DIP-34 | Final evaluation run and analysis (HS1-HS3) | both | results chapter | test part used once; confidence intervals | M | DIP-28, DIP-30 |
+| DIP-34 | Final evaluation run and analysis (HS1-HS3) | both | results chapter | test part used once; confidence intervals | M | DIP-28, DIP-30, DIP-37 |
 | DIP-35 | Thesis and defence materials | both | thesis, slides | supervisor approved | M | DIP-34 |
 | DIP-36 | OJS enrichment of ISSN, language and website for the IT/CS subset (section 2.6) | Abilkhaiyr | Node script `integration/enrichment/` | ISSNs of the journals with an OAI endpoint extracted with provenance; offline tests pass | S | DIP-9 |
+| DIP-37 | HS1 feasibility pilot on the development part (section 9.7) | Nurzhan | pilot report with MRR@10 of M1, M2, M3, H1 | headroom over the best single method stated; supervisor informed before any change of HS1 wording | M | DIP-13, DIP-24 |
+| DIP-38 | CPU latency, start-up time and memory of BGE M3 and multilingual E5 small and base (section 5.3) | Nurzhan | measurement table with hardware and library versions | p50 and p95 of single-query encoding for 100 queries; decision which models enter the comparison | M | DIP-5 |
 
 ---
 
@@ -1243,29 +1304,39 @@ Errors: `401` without key, `422` with the list of schema violations, `404` for a
 
 # References
 
+Alimova, N., & Brumshteyn, Y. (2020). Russia and post-Soviet countries compared: Coverage of papers by Scopus and Web of Science, languages, and productivity of researchers. *European Science Editing, 46*, Article e53192. https://doi.org/10.3897/ese.2020.e53192
+
 Alyafeai, Z., Al-shaibani, M. S., & Ghanem, B. (2025). MOLE: Metadata extraction and validation in scientific papers using LLMs. In *Findings of the Association for Computational Linguistics: EMNLP 2025* (pp. 12028–12042). Association for Computational Linguistics. https://doi.org/10.18653/v1/2025.findings-emnlp.655
 
 Beltagy, I., Lo, K., & Cohan, A. (2019). SciBERT: A pretrained language model for scientific text. In *Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing* (pp. 3615–3620). Association for Computational Linguistics. https://doi.org/10.18653/v1/D19-1371
 
 Blecher, L., Cucurull, G., Scialom, T., & Stojnic, R. (2023). *Nougat: Neural optical understanding for academic documents* [Preprint]. arXiv. https://doi.org/10.48550/arXiv.2308.13418
 
+Bruch, S., Gai, S., & Ingber, A. (2022). *An analysis of fusion functions for hybrid retrieval* [Preprint]. arXiv. https://doi.org/10.48550/arXiv.2210.11934
+
 Choi, J., Kong, H., & Yoon, H.-M. (2022). LAME: Layout-aware metadata extraction approach for research articles. *Computers, Materials & Continua, 72*(1), 1219–1235. https://doi.org/10.32604/cmc.2022.025711
+
+Chen, J., Xiao, S., Zhang, P., Luo, K., Lian, D., & Liu, Z. (2024). M3-Embedding: Multi-linguality, multi-functionality, multi-granularity text embeddings through self-knowledge distillation. In *Findings of the Association for Computational Linguistics: ACL 2024* (pp. 2318–2335). Association for Computational Linguistics. https://doi.org/10.18653/v1/2024.findings-acl.137
 
 Choi, W., Yoon, H.-M., Hyun, M.-H., & Lee, S. (2023). Building an annotated corpus for automatic metadata extraction from multilingual journal article references. *PLOS ONE, 18*(1), Article e0280637. https://doi.org/10.1371/journal.pone.0280637
 
-Cohan, A., Feldman, S., Beltagy, I., Downey, D., & Weld, D. S. (2020). SPECTER: Document-level representation learning using citation-informed transformers. In *Proceedings of the 58th Annual Meeting of the Association for Computational Linguistics* (pp. 2270–2282). Association for Computational Linguistics. https://doi.org/10.18653/v1/2020.acl-main.207
+Cormack, G. V., Clarke, C. L. A., & Büttcher, S. (2009). Reciprocal rank fusion outperforms Condorcet and individual rank learning methods. In *Proceedings of the 32nd International ACM SIGIR Conference on Research and Development in Information Retrieval* (pp. 758–759). ACM. https://doi.org/10.1145/1571941.1572114
 
-[Authors to be added]. (2020). Coverage of post-Soviet countries' journals in Scopus and Web of Science [Title to be confirmed]. *European Science Editing, 46*, Article e53192. https://doi.org/10.3897/ese.2020.e53192
+Cohan, A., Feldman, S., Beltagy, I., Downey, D., & Weld, D. S. (2020). SPECTER: Document-level representation learning using citation-informed transformers. In *Proceedings of the 58th Annual Meeting of the Association for Computational Linguistics* (pp. 2270–2282). Association for Computational Linguistics. https://doi.org/10.18653/v1/2020.acl-main.207
 
 Kong, H., Yoon, H., Seol, J., Lee, S., & Choi, J. (2023). Annotated open corpus construction and BERT-based approach for automatic metadata extraction from Korean academic papers. *IEEE Access, 11*, 2300–2312. https://doi.org/10.1109/ACCESS.2022.3233228
 
 Krause, J., Shapiro, I., Saier, T., & Färber, M. (2021). Bootstrapping multilingual metadata extraction: A showcase in Cyrillic. In *Proceedings of the Second Workshop on Scholarly Document Processing* (pp. 65–71). Association for Computational Linguistics. https://doi.org/10.18653/v1/2021.sdp-1.8
+
+Muennighoff, N., Tazi, N., Magne, L., & Reimers, N. (2023). MTEB: Massive text embedding benchmark. In *Proceedings of the 17th Conference of the European Chapter of the Association for Computational Linguistics* (pp. 2014–2037). Association for Computational Linguistics. https://doi.org/10.18653/v1/2023.eacl-main.148
 
 Lo, K., Wang, L. L., Neumann, M., Kinney, R., & Weld, D. S. (2020). S2ORC: The Semantic Scholar Open Research Corpus. In *Proceedings of the 58th Annual Meeting of the Association for Computational Linguistics* (pp. 4969–4983). Association for Computational Linguistics. https://doi.org/10.18653/v1/2020.acl-main.447
 
 Lopez, P. (2009). GROBID: Combining automatic bibliographic data recognition and term extraction for scholarship publications. In *Research and advanced technology for digital libraries* (Lecture Notes in Computer Science, Vol. 5714). Springer. https://doi.org/10.1007/978-3-642-04346-8_62
 
 Martín-Martín, A., Thelwall, M., Orduna-Malea, E., & Delgado López-Cózar, E. (2021). Google Scholar, Microsoft Academic, Scopus, Dimensions, Web of Science, and OpenCitations' COCI: A multidisciplinary comparison of coverage via citations. *Scientometrics, 126*(1), 871–906. https://doi.org/10.1007/s11192-020-03690-4
+
+Minister of Science and Higher Education of the Republic of Kazakhstan. (2025, June 3). *О внесении изменения в приказ Министра образования и науки Республики Казахстан от 12 января 2016 года № 20 «Об утверждении требований к научным изданиям для включения их в перечень изданий, рекомендуемых для публикации результатов научной деятельности»* [Order No. 289; registered with the Ministry of Justice on 5 June 2025, No. 36221]. Adilet legal-information system. https://adilet.zan.kz/rus/docs/V2500036221
 
 Moskaleva, O., Pislyakov, V., Sterligov, I., Akoev, M., & Shabanova, S. (2018). Russian Index of Science Citation: Overview and review. *Scientometrics, 116*. https://doi.org/10.1007/s11192-018-2758-y
 
@@ -1277,11 +1348,19 @@ PostgreSQL Global Development Group. (n.d.). *pg_trgm: Support for similarity of
 
 Priem, J., Piwowar, H., & Orr, R. (2022). *OpenAlex: A fully-open index of scholarly works, authors, venues, institutions, and concepts* [Preprint]. arXiv. https://doi.org/10.48550/arXiv.2205.01833
 
+Reimers, N., & Gurevych, I. (2020). Making monolingual sentence embeddings multilingual using knowledge distillation. In *Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing* (pp. 4512–4525). Association for Computational Linguistics. https://doi.org/10.18653/v1/2020.emnlp-main.365
+
 Saier, T., Krause, J., & Färber, M. (2023). unarXive 2022: All arXiv publications pre-processed for NLP, including structured full-text and citation network. In *2023 ACM/IEEE Joint Conference on Digital Libraries (JCDL)* (pp. 128–132). IEEE. https://doi.org/10.1109/JCDL57899.2023.00020
 
 Tkaczyk, D., Szostek, P., Fedoryszak, M., Dendek, P. J., & Bolikowski, L. (2015). CERMINE: Automatic extraction of structured metadata from scientific literature. *International Journal on Document Analysis and Recognition, 18*(4), 317–335. https://doi.org/10.1007/s10032-015-0249-8
 
 Visser, M., van Eck, N. J., & Waltman, L. (2021). Large-scale comparison of bibliographic data sources: Scopus, Web of Science, Dimensions, Crossref, and Microsoft Academic. *Quantitative Science Studies, 2*(1), 20–41. https://doi.org/10.1162/qss_a_00112
+
+Wang, L., Yang, N., Huang, X., Yang, L., Majumder, R., & Wei, F. (2024). *Multilingual E5 text embeddings: A technical report* [Preprint]. arXiv. https://doi.org/10.48550/arXiv.2402.05672
+
+Yeshpanov, R., Efimov, P., Boytsov, L., Shalkarbayuli, A., & Braslavski, P. (2024). KazQAD: Kazakh open-domain question answering dataset. In *Proceedings of the 2024 Joint International Conference on Computational Linguistics, Language Resources and Evaluation (LREC-COLING 2024)* (pp. 9645–9656). ELRA and ICCL. https://aclanthology.org/2024.lrec-main.843
+
+Yeshpanov, R., Khassanov, Y., & Varol, H. A. (2022). KazNERD: Kazakh named entity recognition dataset. In *Proceedings of the Thirteenth Language Resources and Evaluation Conference* (pp. 417–426). European Language Resources Association. https://aclanthology.org/2022.lrec-1.44
 
 Zakon.kz. (2025, June 11). *Изменились требования к научным изданиям и публикациям* [Requirements for scientific periodicals and publications have changed]. https://www.zakon.kz/pravo/6480512-izmenilis-trebovaniya-k-nauchnym-izdaniyam-i-publikatsiyam.html
 
@@ -1296,6 +1375,14 @@ Zakon.kz. (2025, June 11). *Изменились требования к нау�
 | L6 | Choi et al., 2022 | L15 | Martín-Martín et al., 2021 |
 | L7 | Alyafeai et al., 2025 | L16 | Priem et al., 2022 |
 | L8 | Blecher et al., 2023 | L17 | Moskaleva et al., 2018 |
-| L9 | Cohan et al., 2020 | L18 | European Science Editing, 2020 |
+| L9 | Cohan et al., 2020 | L18 | Alimova & Brumshteyn, 2020 |
+| | | L19 | Cormack et al., 2009 |
+| | | L20 | Bruch et al., 2022 |
+| | | L21 | Chen et al., 2024 |
+| | | L22 | Wang et al., 2024 |
+| | | L23 | Reimers & Gurevych, 2020 |
+| | | L24 | Muennighoff et al., 2023 |
+| | | L25 | Yeshpanov et al., 2024 (KazQAD) |
+| | | L26 | Yeshpanov et al., 2022 (KazNERD) |
 
 Web pages and documents that the report cites only as links in sections 2 and 4 (Adilet legal-information system, prg.kz, a-articles.kz, Committee presentation at enic-kazakhstan.edu.kz, Elsevier support for Scopus Sources, CASRAI guides, OpenAlex documentation) are listed with their URLs in the tables where they are used.

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup A: search page</title>
+<link rel="stylesheet" href="mockup.css"></head>
+<body>
+<div class="frame">
+  <div class="titlebar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">journals.local/search</span></div>
+  <div class="topbar">
+    <span class="brand">Journal Registry Search</span>
+    <span class="right"><span class="date">Data: &lt;import date&gt;</span><span class="lang"><span>kk</span><span>ru</span><span class="on">en</span></span></span>
+  </div>
+  <div class="content">
+    <div class="searchrow"><input class="q" value="journal of information technologies" readonly><span class="btn">Search</span></div>
+    <div class="filters">
+      <span>Level:</span>
+      <span class="check"><span class="box"></span>1</span><span class="check"><span class="box"></span>2</span><span class="check"><span class="box"></span>3</span>
+      <span>Subject: <span class="select">all ▾</span></span>
+      <span>Language: <span class="select">all ▾</span></span>
+      <span>Status: <span class="select">active ▾</span></span>
+    </div>
+    <div class="meta"><span>5 results (sorted by relevance)</span><span class="btn ghost">Export CSV</span></div>
+    <table>
+      <thead><tr><th>Title</th><th>ISSN</th><th>Level</th><th>Subject</th><th>Matched by</th></tr></thead>
+      <tbody>
+        <tr><td>Journal A of Information Technologies</td><td>0000-0000</td><td><span class="badge lvl">2</span></td><td>Informatics</td><td><span class="chip">fuzzy</span><span class="chip">FTS</span></td></tr>
+        <tr><td>Journal B: Information Tech.</td><td>0000-0001</td><td><span class="badge lvl">3</span></td><td>Informatics</td><td><span class="chip">fuzzy</span></td></tr>
+        <tr><td>Vestnik C<br><span class="alt">(Информационные технологии)</span></td><td>0000-0002</td><td><span class="badge lvl">2</span></td><td>Informatics</td><td><span class="chip">semantic</span></td></tr>
+        <tr><td>Journal D of Computer Science</td><td>0000-0003</td><td><span class="badge lvl">2</span></td><td>Informatics</td><td><span class="chip">semantic</span></td></tr>
+        <tr><td>Journal E of Applied Informatics</td><td>0000-0004</td><td><span class="badge lvl">3</span></td><td>Informatics</td><td><span class="chip">fuzzy</span></td></tr>
+      </tbody>
+    </table>
+    <div class="pager"><span>&lt;</span><span class="cur">1</span><span>2</span><span>&gt;</span><span>page size [10 ▾]</span></div>
+    <div class="note">Placeholder data. States still to design: loading, no results, API error, query too long.</div>
+  </div>
+</div>
+</body></html>

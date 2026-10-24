@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C: status check</title>
+<link rel="stylesheet" href="mockup.css"></head>
+<body>
+<div class="frame">
+  <div class="titlebar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">journals.local/status</span></div>
+  <div class="topbar">
+    <span class="brand">Journal Registry Search</span>
+    <span class="right"><span class="date">Data: &lt;import date&gt;</span><span class="lang"><span>kk</span><span>ru</span><span class="on">en</span></span></span>
+  </div>
+  <div class="content">
+    <h2>Is this journal recommended?</h2>
+    <div class="searchrow"><input class="q" value="0000-0000" readonly><span class="btn">Check</span></div>
+
+    <div class="result yes">
+      <div class="big">YES: recommended, level 2</div>
+      <div>Journal A of Information Technologies (ISSN 0000-0000)</div>
+      <div style="color:var(--muted)">As of &lt;import date&gt;. Source: &lt;order / document&gt;. <span style="color:var(--accent)">Open journal card ›</span></div>
+    </div>
+
+    <div class="result no">
+      <div class="big">NOT FOUND</div>
+      <div>“Journal Z” is not in the registry as of &lt;import date&gt;.</div>
+      <div style="color:var(--muted)">Did you mean: <span style="color:var(--accent)">Journal A …</span> &nbsp; <span style="color:var(--accent)">Journal B …</span></div>
+    </div>
+
+    <div class="disclaimer">This tool reflects the imported list, not an official certificate.</div>
+    <div class="note">Placeholder data. Both answers are shown together for the report; the page shows one at a time.</div>
+  </div>
+</div>
+</body></html>

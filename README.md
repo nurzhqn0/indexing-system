@@ -3,6 +3,7 @@
 Diploma project, group SE-2421. A web system for searching the list of scientific journals recommended by the Science and Higher Education Quality Assurance Committee of the Ministry of Science and Higher Education of Kazakhstan: hybrid search (full-text, fuzzy and semantic, fused by Reciprocal Rank Fusion), a recommended-status check and a versioned registry.
 
 RU: Разработка интеллектуальной системы индексации научных журналов, рекомендованных Комитетом по обеспечению качества в сфере науки и высшего образования МНВО РК.
+
 KZ: ҚР Ғылым және жоғары білім министрлігінің сапаны қамтамасыз ету комитеті ұсынған ғылыми журналдарды индекстеуге арналған интеллектуалды жүйе.
 
 ## Problem, users, outcomes

@@ -1,0 +1,20 @@
+flowchart LR
+    res([Researcher / teacher / PhD student])
+    lib([Librarian / council staff])
+    ed([Journal editor])
+    adm([Data administrator])
+
+    sys[["Journal Registry Search System<br/>(hybrid search, status check, versioned registry)"]]
+
+    src[(Committee list source<br/>official document / file, three levels)]
+    oa[(OpenAlex / DOAJ<br/>optional enrichment)]
+    emb[Embedding model<br/>runs locally]
+
+    res -->|search, check status| sys
+    lib -->|verify journal and level| sys
+    ed -->|find own journal entry| sys
+    adm -->|run import, review diff| sys
+
+    src -->|downloaded and parsed by import module| sys
+    sys -.->|ISSN / publisher lookup, optional| oa
+    sys -->|encode titles and queries| emb

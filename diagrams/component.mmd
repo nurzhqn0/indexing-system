@@ -1,0 +1,43 @@
+flowchart TB
+    subgraph CL[Client - Vue, Abilkhaiyr]
+        ui[Search page, filters,<br/>results table]
+        card[Journal card,<br/>status check]
+    end
+
+    subgraph IMP[Data integration - Node.js scripts, Abilkhaiyr]
+        fetch[Fetch / read source]
+        parse[Parse and normalise<br/>to import JSON]
+        vald[Validate against<br/>registry-import.schema.json]
+    end
+
+    subgraph API[Backend - FastAPI, Nurzhan]
+        sr[Search router<br/>GET /api/search]
+        jr[Journals router<br/>GET /api/journals/id]
+        ar[Admin router<br/>POST /api/admin/import]
+        subgraph CORE[Search core]
+            qn[Query normaliser<br/>case, kk letters, ISSN]
+            fts[FTS retriever]
+            tri[Trigram retriever<br/>pg_trgm]
+            vec[Vector retriever<br/>pgvector]
+            fuse[Fusion<br/>RRF, convex option]
+        end
+        embs[Embedding encoder]
+    end
+
+    db[(PostgreSQL<br/>journals, titles, status,<br/>subjects, versions, embeddings)]
+    ev[Evaluation harness<br/>query set, metrics]
+
+    ui --> sr
+    card --> jr
+    fetch --> parse --> vald --> ar
+    sr --> qn --> fts --> fuse
+    qn --> tri --> fuse
+    qn --> embs --> vec --> fuse
+    fts --> db
+    tri --> db
+    vec --> db
+    jr --> db
+    ar --> db
+    ar --> embs
+    ev --> sr
+    ev -.reads.-> db

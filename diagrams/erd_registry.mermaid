@@ -1,0 +1,75 @@
+erDiagram
+    IMPORT_VERSIONS ||--o{ JOURNAL_STATUS : "status valid in"
+    JOURNALS ||--o{ JOURNAL_TITLES : "has names"
+    JOURNALS ||--o{ JOURNAL_STATUS : "has status history"
+    JOURNALS ||--o{ JOURNAL_SUBJECTS : "classified as"
+    SUBJECTS ||--o{ JOURNAL_SUBJECTS : "groups"
+    JOURNALS ||--o| JOURNAL_EMBEDDINGS : "embedded as"
+    EVAL_QUERIES }o--|| JOURNALS : "expects"
+
+    IMPORT_VERSIONS {
+        int version_id PK
+        timestamp imported_at
+        string source_ref "document or file reference"
+        date source_date "edition date of the list"
+        string order_ref "legal order number and date"
+        int record_count
+        string checksum
+    }
+
+    JOURNALS {
+        uuid journal_id PK
+        string issn
+        string eissn
+        string publisher
+        string website
+        string primary_language "kk | ru | en"
+        timestamp created_at
+    }
+
+    JOURNAL_TITLES {
+        bigint title_id PK
+        uuid journal_id FK
+        string lang "kk | ru | en"
+        string title
+        string alias_type "official | translation | abbreviation | former"
+        string title_normalized
+    }
+
+    JOURNAL_STATUS {
+        bigint status_id PK
+        uuid journal_id FK
+        int version_id FK
+        string list_level "1 | 2 | 3 | other"
+        string category "journal | security_bodies | conference | publisher"
+        string status "active | removed"
+        string inclusion_order
+        date inclusion_date
+    }
+
+    SUBJECTS {
+        int subject_id PK
+        string name_ru
+        string name_kk
+        string name_en
+    }
+
+    JOURNAL_SUBJECTS {
+        uuid journal_id FK
+        int subject_id FK
+    }
+
+    JOURNAL_EMBEDDINGS {
+        uuid journal_id PK
+        string model
+        vector embedding "pgvector"
+        string text_hash
+    }
+
+    EVAL_QUERIES {
+        int query_id PK
+        string text
+        string lang "kk | ru | en"
+        string query_type "exact | partial | typo | transliteration | topic | cross_language | issn"
+        uuid journal_id FK "expected answer"
+    }

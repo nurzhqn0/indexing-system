@@ -1,0 +1,23 @@
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# Secrets / local config
+.env
+*.key
+
+# Node / enrichment output
+node_modules/
+integration/enrichment/out/
+integration/enrichment/logs/
+
+# Course brief, not project content
+/*.docx

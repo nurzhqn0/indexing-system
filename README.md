@@ -21,7 +21,7 @@ KZ: ҚР Ғылым және жоғары білім министрлігіні�
 ## Scope and status
 In scope: the Committee list (243 rows in the edition of 15 Sep 2026, imported whole), with a focus on the **IT and computer-science subset of 15 journals**; search by title, ISSN and topic in kk/ru/en, filters, status check, versioned import, Docker deployment. Out of scope: official decisions, authentication, article-level indexing. Open scope questions are listed in report section 1.
 
-Status (23 Oct 2026): analysis and design package done (`docs/REPORT.md`). A journal-level enrichment prototype (`integration/enrichment/`) works for one journal of the IT/CS subset. Registry import, backend, search core, client and evaluation are not started. Pending: user survey and discussions (report section 2.4), supervisor feedback on the report, YouTrack project.
+Status (23 Oct 2026): analysis and design package done (`docs/REPORT.md`). A journal-level enrichment prototype (`integration/enrichment/`) works for one journal of the IT/CS subset. Registry import, backend, search core, client and evaluation are not started. User survey (Google Forms) is open and follow-up discussions are in progress (report section 2.4). Pending: supervisor feedback on the report.
 
 ## Technologies
 Selected for the core: Python, FastAPI, PostgreSQL with full-text search, `pg_trgm` and `pgvector`, multilingual embedding model (BGE M3 or multilingual E5, to be decided by measurement), Vue 3, Node.js scripts for data integration, Docker. Alternatives and reasons: report section 5.

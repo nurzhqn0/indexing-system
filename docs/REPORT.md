@@ -171,11 +171,11 @@ The user needs are explored with an anonymous online survey (Google Forms) of po
 **Follow-up discussions** (3-5, 20 minutes each)
 | # | Role | Why | Contact / date | Status |
 |---|---|---|---|---|
-| U1 | PhD student or young researcher | how status is checked today; typical queries | | not scheduled |
-| U2 | Teacher or researcher who publishes regularly | decision before submission; which attributes matter | | not scheduled |
-| U3 | Librarian or scientometrics specialist | verification routines, error cases, official sources | | not scheduled |
-| U4 | Dissertation council secretary or PhD office | which level is required for defence; proof needed | | not scheduled |
-| U5 | Supervisor (client proxy) | scope, data source, priorities | | not scheduled |
+| U1 | PhD student or young researcher | how status is checked today; typical queries | in progress | in progress |
+| U2 | Teacher or researcher who publishes regularly | decision before submission; which attributes matter | in progress | in progress |
+| U3 | Librarian or scientometrics specialist | verification routines, error cases, official sources | in progress | in progress |
+| U4 | Dissertation council secretary or PhD office | which level is required for defence; proof needed | in progress | in progress |
+| U5 | Supervisor (client proxy) | scope, data source, priorities | in progress | in progress |
 
 Note template per discussion:
 ```
@@ -187,15 +187,15 @@ Changes our assumptions? (which):
 Follow-ups:
 ```
 
-**Results** (filled after the form closes; no response has been collected yet)
+**Results** (the form is open and the discussions are in progress; results are filled after the form closes on 6 Nov 2026, no figures are reported before that)
 | Question | Result | Requirement affected |
 |---|---|---|
-| number of responses, group mix | | |
-| Q3-Q6: frequency, tools, time, errors | | FR-16, NFR-01 |
-| Q7-Q9: search by, languages, typos | | FR-05 to FR-09 |
-| Q10: topic search | | FR-07 |
-| Q11: fields the answer must show | | FR-04, FR-14 |
-| Q12: trust and source display | | FR-16 |
+| number of responses, group mix | in progress | |
+| Q3-Q6: frequency, tools, time, errors | in progress | FR-16, NFR-01 |
+| Q7-Q9: search by, languages, typos | in progress | FR-05 to FR-09 |
+| Q10: topic search | in progress | FR-07 |
+| Q11: fields the answer must show | in progress | FR-04, FR-14 |
+| Q12: trust and source display | in progress | FR-16 |
 
 ## 2.5 Verified findings versus assumptions
 | Statement | Status | Basis | How to verify |
